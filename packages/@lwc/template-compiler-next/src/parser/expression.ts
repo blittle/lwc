@@ -1,4 +1,4 @@
-import { ASTExpression, ASTExpressionIdentifier } from '../ast';
+import { ASTExpression, ASTIdentifier } from '../ast';
 
 interface ExpressionParser {
     position: number;
@@ -42,7 +42,7 @@ function createParser(str: string, offset: number = 0): ExpressionParser {
     };
 }
 
-function parseIdentifier(parser: ExpressionParser): ASTExpressionIdentifier {
+function parseIdentifier(parser: ExpressionParser): ASTIdentifier {
     let buffer = '';
 
     while (isValidIdentifier(parser.peek())) {
@@ -50,7 +50,7 @@ function parseIdentifier(parser: ExpressionParser): ASTExpressionIdentifier {
     }
 
     return {
-        type: 'expression-identifier',
+        type: 'identifier',
         name: buffer,
     };
 }
@@ -63,7 +63,7 @@ function parse(parser: ExpressionParser): ASTExpression {
     while (parser.match('.')) {
         parser.eat('.');
         expression = {
-            type: 'expression-member-lookup',
+            type: 'member-expression',
             object: expression,
             property: parseIdentifier(parser),
         };

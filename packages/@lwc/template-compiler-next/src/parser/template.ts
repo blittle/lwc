@@ -2,7 +2,6 @@ import * as parse5 from 'parse5';
 import {
     ASTExpression,
     ASTText,
-    ASTTextInterpolation,
     ASTComment,
     ASTAttribute,
     ASTRoot,
@@ -12,8 +11,8 @@ import {
 import * as parse5Utils from './parse5-utils';
 import { parseExpression } from './expression';
 
-function parseTextNode(textNode: parse5.TextNode): Array<ASTText | ASTTextInterpolation> {
-    const astNodes: Array<ASTText | ASTTextInterpolation> = [];
+function parseTextNode(textNode: parse5.TextNode): ASTText[] {
+    const astNodes: ASTText[] = [];
 
     let position = 0;
     let buffer = '';
@@ -42,8 +41,8 @@ function parseTextNode(textNode: parse5.TextNode): Array<ASTText | ASTTextInterp
             }
 
             astNodes.push({
-                type: 'text-interpolation',
-                expression: parseExpression(buffer),
+                type: 'text',
+                value: parseExpression(buffer),
             });
 
             buffer = '';
@@ -158,7 +157,7 @@ function parseElement(node: parse5.Element): ASTChildNode {
             type: 'for-block',
             expression: forAttribute.expression,
             item: forAttribute.item,
-            index: forAttribute.item,
+            index: forAttribute.index,
             children: [element],
         };
     }
