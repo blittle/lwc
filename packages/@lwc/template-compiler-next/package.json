@@ -1,0 +1,17 @@
+{
+    "name": "@lwc/template-compiler-next",
+    "version": "1.3.6",
+    "description": "Template compiler package",
+    "main": "dist/commonjs/index.js",
+    "typings": "dist/types/index.d.ts",
+    "license": "MIT",
+    "scripts": {
+        "build": "tsc"
+    },
+    "files": [
+        "dist/"
+    ],
+    "dependencies": {
+        "parse5": "5.1.1"
+    }
+}
