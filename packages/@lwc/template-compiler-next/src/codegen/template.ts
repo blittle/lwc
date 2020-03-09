@@ -1,7 +1,16 @@
-import { ASTRoot, ASTChildNode, ASTText, ASTElement, ASTExpression, ASTAttribute } from '../types';
 import { code } from '../utils/code';
+import {
+    ASTRoot,
+    ASTChildNode,
+    ASTText,
+    ASTElement,
+    ASTExpression,
+    ASTAttribute,
+    ASTIfBlock,
+} from '../types';
 
 import { Block } from './block';
+import { Renderer } from './renderer';
 
 function generateExpression(expression: ASTExpression): string {
     switch (expression.type) {
@@ -15,7 +24,7 @@ function generateExpression(expression: ASTExpression): string {
     }
 }
 
-function generateTextNode(block: Block, parent: string, text: ASTText): void {
+function generateTextNode(renderer: Renderer, block: Block, parent: string, text: ASTText): void {
     if (typeof text.value === 'string') {
         block.addElement('text', parent, `createText(${JSON.stringify(text.value)})`);
     } else {
@@ -32,7 +41,12 @@ function generateTextNode(block: Block, parent: string, text: ASTText): void {
     }
 }
 
-function generateAttribute(block: Block, parent: string, attribute: ASTAttribute): void {
+function generateAttribute(
+    renderer: Renderer,
+    block: Block,
+    parent: string,
+    attribute: ASTAttribute
+): void {
     if (typeof attribute.value === 'string') {
         block.createStatements.push(
             `setAttribute(${parent}, "${attribute.name}", ${JSON.stringify(attribute.value)});`
@@ -53,7 +67,12 @@ function generateAttribute(block: Block, parent: string, attribute: ASTAttribute
     }
 }
 
-function generateElement(block: Block, parent: string, element: ASTElement): void {
+function generateElement(
+    renderer: Renderer,
+    block: Block,
+    parent: string,
+    element: ASTElement
+): void {
     const identifier = block.addElement(
         element.name,
         parent,
@@ -63,26 +82,78 @@ function generateElement(block: Block, parent: string, element: ASTElement): voi
     );
 
     for (const attribute of element.attributes) {
-        generateAttribute(block, identifier, attribute);
+        generateAttribute(renderer, block, identifier, attribute);
     }
 
     for (const child of element.children) {
-        generateChildNode(block, identifier, child);
+        generateChildNode(renderer, block, identifier, child);
     }
 }
 
-function generateChildNode(block: Block, parent: string, childNode: ASTChildNode): void {
+function generateIfBlock(
+    renderer: Renderer,
+    block: Block,
+    parent: string,
+    ifBlockNode: ASTIfBlock
+): void {
+    const conditionLookup = `context.${generateExpression(ifBlockNode.condition)}`;
+    const conditionExpression =
+        ifBlockNode.modifier === 'false' ? `!${conditionLookup}` : conditionLookup;
+
+    const ifBlock = renderer.createBlock('ifBlock');
+    for (const child of ifBlockNode.children) {
+        generateChildNode(renderer, ifBlock, 'target', child);
+    }
+
+    const ifBlockIdentifier = block.registerIdentifier(
+        'if_block',
+        `${conditionExpression} && ${ifBlock.name}(ctx)`
+    );
+
+    block.createStatements.push(code`
+        if (${ifBlockIdentifier}) {
+            ${ifBlockIdentifier}.create();
+        }
+    `);
+    block.insertStatements.push(code`
+        if (${ifBlockIdentifier}) {
+            ${ifBlockIdentifier}.insert(${parent});
+        }
+    `);
+    block.updateStatements.push(code`
+        if (${conditionExpression}) {
+            if (${ifBlockIdentifier}) {
+                ${ifBlockIdentifier}.update();
+            } else {
+                ${ifBlockIdentifier} = ${ifBlock.name}(ctx);
+                ${ifBlockIdentifier}.create();
+                ${ifBlockIdentifier}.insert(${parent});
+            }
+        }
+    `);
+}
+
+function generateChildNode(
+    renderer: Renderer,
+    block: Block,
+    parent: string,
+    childNode: ASTChildNode
+): void {
     switch (childNode.type) {
         case 'comment':
             // Do nothing
             break;
 
         case 'text':
-            generateTextNode(block, parent, childNode);
+            generateTextNode(renderer, block, parent, childNode);
             break;
 
         case 'element':
-            generateElement(block, parent, childNode);
+            generateElement(renderer, block, parent, childNode);
+            break;
+
+        case 'if-block':
+            generateIfBlock(renderer, block, parent, childNode);
             break;
 
         default:
@@ -91,11 +162,12 @@ function generateChildNode(block: Block, parent: string, childNode: ASTChildNode
 }
 
 export function generateTemplate(root: ASTRoot): string {
-    const block = new Block();
+    const renderer = new Renderer();
+    const block = renderer.createBlock('template');
 
     for (const child of root.children) {
-        generateChildNode(block, 'target', child);
+        generateChildNode(renderer, block, 'target', child);
     }
 
-    return block.render();
+    return renderer.render();
 }

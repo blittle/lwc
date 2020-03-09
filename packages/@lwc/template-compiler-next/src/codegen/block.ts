@@ -1,11 +1,16 @@
 import { code } from '../utils/code';
 
 export class Block {
+    name: string;
     identifiers = new Map<string, string | undefined>();
 
     createStatements: string[] = [];
     insertStatements: string[] = [];
     updateStatements: string[] = [];
+
+    constructor(name: string) {
+        this.name = name;
+    }
 
     registerIdentifier(name: string, init?: string): string {
         const original = name;
@@ -36,7 +41,7 @@ export class Block {
         );
 
         return code`
-            function create_fragment(context) {
+            function ${this.name}(context) {
                 ${identifierDeclarations}
                 return {
                     create() {

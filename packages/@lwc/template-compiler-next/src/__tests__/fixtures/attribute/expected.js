@@ -1,4 +1,4 @@
-function create_fragment(context) {
+function template(context) {
     let div;
     return {
         create() {

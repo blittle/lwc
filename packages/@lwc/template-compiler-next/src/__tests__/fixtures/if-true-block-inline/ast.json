@@ -1,0 +1,26 @@
+{
+    "type": "root",
+    "children": [
+        {
+            "type": "if-block",
+            "modifier": "true",
+            "condition": {
+                "type": "identifier",
+                "name": "isTrue"
+            },
+            "children": [
+                {
+                    "type": "element",
+                    "name": "div",
+                    "attributes": [],
+                    "children": [
+                        {
+                            "type": "text",
+                            "value": "test\n    "
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

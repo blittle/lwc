@@ -1,4 +1,4 @@
-function create_fragment(context) {
+function template(context) {
     let div;
     let class_value = context.divClass;
     let style_value = context.divStyle;
