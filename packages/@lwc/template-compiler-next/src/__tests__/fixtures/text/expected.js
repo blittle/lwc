@@ -5,7 +5,7 @@ function create_fragment(context) {
             text = createText("Hello world!\n");
         },
         insert(target) {
-            insert(text, target)
+            insert(text, target);
         },
         update() {
             

@@ -22,8 +22,8 @@ export class Block {
     addElement(identifier: string, parentIdentifier: string, create: string): string {
         identifier = this.registerIdentifier(identifier);
 
-        this.createStatements.push(`${identifier} = ${create}`);
-        this.insertStatements.push(`insert(${identifier}, ${parentIdentifier})`);
+        this.createStatements.push(`${identifier} = ${create};`);
+        this.insertStatements.push(`insert(${identifier}, ${parentIdentifier});`);
 
         return identifier;
     }

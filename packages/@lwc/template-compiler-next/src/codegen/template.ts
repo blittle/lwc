@@ -17,12 +17,12 @@ function generateExpression(expression: ASTExpression): string {
 
 function generateTextNode(block: Block, parent: string, text: ASTText): void {
     if (typeof text.value === 'string') {
-        block.addElement('text', parent, `createText(${JSON.stringify(text.value)});`);
+        block.addElement('text', parent, `createText(${JSON.stringify(text.value)})`);
     } else {
         const valueLookup = `context.${generateExpression(text.value)}`;
 
         const valueIdentifier = block.registerIdentifier(`text_value`, valueLookup);
-        const nodeIdentifier = block.addElement('text', parent, `createText(${valueIdentifier});`);
+        const nodeIdentifier = block.addElement('text', parent, `createText(${valueIdentifier})`);
 
         block.updateStatements.push(code`
             if (${valueIdentifier} !== (${valueIdentifier} = ${valueLookup})) {
@@ -35,19 +35,21 @@ function generateTextNode(block: Block, parent: string, text: ASTText): void {
 function generateAttribute(block: Block, parent: string, attribute: ASTAttribute): void {
     if (typeof attribute.value === 'string') {
         block.createStatements.push(
-            `setAttribute(${parent}, "${attribute.name}", ${JSON.stringify(attribute.value)})`
+            `setAttribute(${parent}, "${attribute.name}", ${JSON.stringify(attribute.value)});`
         );
     } else {
+        const valueLookup = `context.${generateExpression(attribute.value)}`;
+
+        const valueIdentifier = block.registerIdentifier(`${attribute.name}_value`, valueLookup);
+
         block.createStatements.push(
-            `setAttribute(${parent}, "${attribute.name}", context.${generateExpression(
-                attribute.value
-            )});`
+            `setAttribute(${parent}, "${attribute.name}", ${valueIdentifier});`
         );
-        block.updateStatements.push(
-            `setAttribute(${parent}, "${attribute.name}", context.${generateExpression(
-                attribute.value
-            )});`
-        );
+        block.updateStatements.push(code`
+            if (${valueIdentifier} !== (${valueIdentifier} = ${valueLookup})) {
+                setAttribute(${parent}, "${attribute.name}", ${valueIdentifier});
+            }
+        `);
     }
 }
 
@@ -56,8 +58,8 @@ function generateElement(block: Block, parent: string, element: ASTElement): voi
         element.name,
         parent,
         !element.namespace
-            ? `createElement("${element.name}");`
-            : `createElement("${element.name}", "${element.namespace}");`
+            ? `createElement("${element.name}")`
+            : `createElement("${element.name}", "${element.namespace}")`
     );
 
     for (const attribute of element.attributes) {

@@ -7,8 +7,8 @@ function create_fragment(context) {
             text = createText("test");
         },
         insert(target) {
-            insert(span, target)
-            insert(text, span)
+            insert(span, target);
+            insert(text, span);
         },
         update() {
             

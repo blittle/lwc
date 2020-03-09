@@ -12,10 +12,10 @@ function create_fragment(context) {
             text1 = createText("!");
         },
         insert(target) {
-            insert(span, target)
-            insert(text, span)
-            insert(text0, span)
-            insert(text1, span)
+            insert(span, target);
+            insert(text, span);
+            insert(text0, span);
+            insert(text1, span);
         },
         update() {
             if (text_value !== (text_value = context.name)) {
