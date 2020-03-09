@@ -6,7 +6,8 @@
     "typings": "dist/types/index.d.ts",
     "license": "MIT",
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "test": "jest"
     },
     "files": [
         "dist/"

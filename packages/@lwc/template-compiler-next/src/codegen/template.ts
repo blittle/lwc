@@ -56,8 +56,8 @@ function generateElement(block: Block, parent: string, element: ASTElement): voi
         element.name,
         parent,
         !element.namespace
-            ? `createElement("${element.name});`
-            : `createElement("${element.name},"${element.namespace}");`
+            ? `createElement("${element.name}");`
+            : `createElement("${element.name}", "${element.namespace}");`
     );
 
     for (const attribute of element.attributes) {

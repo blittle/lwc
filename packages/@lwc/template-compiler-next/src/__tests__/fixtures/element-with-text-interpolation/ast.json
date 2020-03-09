@@ -1,0 +1,27 @@
+{
+    "type": "root",
+    "children": [
+        {
+            "type": "element",
+            "name": "span",
+            "attributes": [],
+            "children": [
+                {
+                    "type": "text",
+                    "value": "Hello "
+                },
+                {
+                    "type": "text",
+                    "value": {
+                        "type": "identifier",
+                        "name": "name"
+                    }
+                },
+                {
+                    "type": "text",
+                    "value": "!"
+                }
+            ]
+        }
+    ]
+}
