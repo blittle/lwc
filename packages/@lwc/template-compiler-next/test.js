@@ -1,7 +1,11 @@
+/* eslint-disable */
+
 const { compile } = require('./dist/commonjs/index');
 
-compile(`
+const res = compile(`
 <template>
-    Hello {name.bar.baz} awd ad {bar}!
+    <div>awdaw   {adwadawd} adwda {awdawda}</div>
 </template>
 `);
+
+console.log(res);

@@ -6,58 +6,48 @@ import {
     ASTAttribute,
     ASTRoot,
     ASTChildNode,
-} from '../ast';
+    ASTIdentifier,
+    CompilerConfig,
+} from '../types';
 
-import * as parse5Utils from './parse5-utils';
-import { parseExpression } from './expression';
+import * as parse5Utils from '../utils/parse5';
+import { HTML_NAMESPACE } from '../utils/namespaces';
 
-function parseTextNode(textNode: parse5.TextNode): ASTText[] {
+import { parseExpression, parseExpressionAt, parseIdentifer } from './expression';
+
+function parseTextNode(textNode: parse5.TextNode, config: CompilerConfig): ASTText[] {
+    const { value: str } = textNode;
     const astNodes: ASTText[] = [];
 
     let position = 0;
-    let buffer = '';
-
-    while (position < textNode.value.length) {
-        let char = textNode.value.charAt(position);
-
-        if (char === '{') {
-            if (buffer.length > 0) {
-                astNodes.push({
-                    type: 'text',
-                    value: buffer,
-                });
-                buffer = '';
-            }
-
-            while (char !== '}') {
-                char = textNode.value.charAt(position);
-
-                if (position >= textNode.value.length) {
-                    throw new Error('Unexpected end of expression');
-                }
-
-                buffer += char;
+    while (position < str.length) {
+        if (!config.preserveWhitespaces) {
+            while (position < str.length && str.charAt(position).match(/[\n\t\s]/)) {
                 position++;
             }
-
-            astNodes.push({
-                type: 'text',
-                value: parseExpression(buffer),
-            });
-
-            buffer = '';
-            char = textNode.value.charAt(position++);
         }
 
-        buffer += char;
-        position++;
-    }
+        const textStart = position;
+        while (position < str.length && str.charAt(position) !== '{') {
+            position++;
+        }
 
-    if (buffer.length > 0) {
-        astNodes.push({
-            type: 'text',
-            value: buffer,
-        });
+        if (textStart !== position) {
+            astNodes.push({
+                type: 'text',
+                value: str.slice(textStart, position),
+            });
+        }
+
+        if (str.charAt(position) === '{') {
+            const { expression, offset } = parseExpressionAt(str, position);
+
+            position = offset;
+            astNodes.push({
+                type: 'text',
+                value: expression,
+            });
+        }
     }
 
     return astNodes;
@@ -70,7 +60,7 @@ function parseComment(commentNode: parse5.CommentNode): ASTComment {
     };
 }
 
-function getIfAttribute({
+function consumeIfAttribute({
     attrs,
 }: parse5.Element): { modifier: 'true' | 'false'; condition: ASTExpression } | null {
     const ifAttribute = attrs.find(attr => attr.name.startsWith('if:'));
@@ -96,9 +86,13 @@ function getIfAttribute({
     };
 }
 
-function getForAttribute({
+function consumeForAttribute({
     attrs,
-}: parse5.Element): { expression: ASTExpression; item?: string; index?: string } | null {
+}: parse5.Element): {
+    expression: ASTExpression;
+    item?: ASTIdentifier;
+    index?: ASTIdentifier;
+} | null {
     const forEachAttribute = attrs.find(attr => attr.name.startsWith('for:each'));
     if (!forEachAttribute) {
         return null;
@@ -118,29 +112,33 @@ function getForAttribute({
 
     return {
         expression: parseExpression(forEachAttribute.value),
-        item: forItemAttribute?.value,
-        index: forIndexAttribute?.value,
+        item: forItemAttribute ? parseIdentifer(forItemAttribute.value) : undefined,
+        index: forIndexAttribute ? parseIdentifer(forIndexAttribute.value) : undefined,
     };
 }
 
 function parseAttributes(attribute: parse5.Attribute): ASTAttribute {
+    const value = attribute.value.startsWith('{')
+        ? parseExpression(attribute.value)
+        : attribute.value;
+
     return {
         type: 'attribute',
         name: attribute.name,
-        value: attribute.value,
+        value,
     };
 }
 
-function parseElement(node: parse5.Element): ASTChildNode {
-    const forAttribute = getForAttribute(node);
-    const ifAttribute = getIfAttribute(node);
+function parseElement(node: parse5.Element, config: CompilerConfig): ASTChildNode {
+    const forAttribute = consumeForAttribute(node);
+    const ifAttribute = consumeIfAttribute(node);
 
     let element: ASTChildNode = {
         type: 'element',
         name: node.tagName,
-        namespace: node.namespaceURI,
+        namespace: HTML_NAMESPACE !== node.namespaceURI ? node.namespaceURI : undefined,
         attributes: node.attrs.map(parseAttributes),
-        children: node.childNodes.flatMap(parseNode),
+        children: node.childNodes.flatMap(child => parseChildNode(child, config)),
     };
 
     if (ifAttribute) {
@@ -165,19 +163,19 @@ function parseElement(node: parse5.Element): ASTChildNode {
     return element;
 }
 
-function parseNode(node: parse5.Node): ASTChildNode[] {
+function parseChildNode(node: parse5.Node, config: CompilerConfig): ASTChildNode[] {
     if (parse5Utils.isTextNode(node)) {
-        return parseTextNode(node);
+        return parseTextNode(node, config);
     } else if (parse5Utils.isCommentNode(node)) {
         return [parseComment(node)];
     } else if (parse5Utils.isElement(node)) {
-        return [parseElement(node)];
+        return [parseElement(node, config)];
     }
 
     throw new Error(`Unexpected node "${node}"`);
 }
 
-export function parseTemplate(src: string): ASTRoot {
+export function parseTemplate(src: string, config: CompilerConfig): ASTRoot {
     const fragment = parse5.parseFragment(src);
 
     const rootElements = fragment.childNodes.filter(parse5Utils.isElement);
@@ -192,7 +190,9 @@ export function parseTemplate(src: string): ASTRoot {
         throw new Error('Unexpected element at the root');
     }
 
-    const children = rootTemplate.content.childNodes.flatMap(parseNode);
+    const children = rootTemplate.content.childNodes.flatMap(child =>
+        parseChildNode(child, config)
+    );
 
     return {
         type: 'root',

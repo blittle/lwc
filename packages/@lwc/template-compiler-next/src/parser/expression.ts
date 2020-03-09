@@ -1,4 +1,4 @@
-import { ASTExpression, ASTIdentifier } from '../ast';
+import { ASTExpression, ASTIdentifier } from '../types';
 
 interface ExpressionParser {
     position: number;
@@ -42,7 +42,7 @@ function createParser(str: string, offset: number = 0): ExpressionParser {
     };
 }
 
-function parseIdentifier(parser: ExpressionParser): ASTIdentifier {
+function processIdentifier(parser: ExpressionParser): ASTIdentifier {
     let buffer = '';
 
     while (isValidIdentifier(parser.peek())) {
@@ -55,17 +55,17 @@ function parseIdentifier(parser: ExpressionParser): ASTIdentifier {
     };
 }
 
-function parse(parser: ExpressionParser): ASTExpression {
+function processExpression(parser: ExpressionParser): ASTExpression {
     parser.eat('{');
 
-    let expression: ASTExpression = parseIdentifier(parser);
+    let expression: ASTExpression = processIdentifier(parser);
 
     while (parser.match('.')) {
         parser.eat('.');
         expression = {
             type: 'member-expression',
             object: expression,
-            property: parseIdentifier(parser),
+            property: processIdentifier(parser),
         };
     }
 
@@ -76,7 +76,7 @@ function parse(parser: ExpressionParser): ASTExpression {
 
 export function parseExpression(str: string): ASTExpression {
     const parser = createParser(str);
-    const expression = parse(parser);
+    const expression = processExpression(parser);
 
     if (parser.position !== str.length) {
         throw new Error('Unexpected end of expression');
@@ -85,15 +85,26 @@ export function parseExpression(str: string): ASTExpression {
     return expression;
 }
 
-export function parsePartialExpression(
+export function parseExpressionAt(
     str: string,
     offset: number
 ): { expression: ASTExpression; offset: number } {
     const parser = createParser(str, offset);
-    const expression = parse(parser);
+    const expression = processExpression(parser);
 
     return {
         expression,
         offset: parser.position,
     };
+}
+
+export function parseIdentifer(str: string): ASTIdentifier {
+    const parser = createParser(str);
+    const identifier = processIdentifier(parser);
+
+    if (parser.position !== str.length) {
+        throw new Error('Unexpected identifier');
+    }
+
+    return identifier;
 }
