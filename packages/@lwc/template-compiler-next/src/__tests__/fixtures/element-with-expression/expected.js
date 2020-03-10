@@ -1,4 +1,7 @@
-function template(context) {
+import { renderer } from 'lwc';
+const { createElement, createText, setData } = renderer;
+
+export default function template(context) {
     let span;
     let text;
     let text_value = context.name;

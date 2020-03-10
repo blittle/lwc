@@ -26,16 +26,16 @@ function generateExpression(expression: ASTExpression): string {
 
 function generateTextNode(renderer: Renderer, block: Block, parent: string, text: ASTText): void {
     if (typeof text.value === 'string') {
-        block.addElement('text', parent, `createText(${JSON.stringify(text.value)})`);
+        block.addElement('text', parent, `@createText(${JSON.stringify(text.value)})`);
     } else {
         const valueLookup = `context.${generateExpression(text.value)}`;
 
         const valueIdentifier = block.registerIdentifier(`text_value`, valueLookup);
-        const nodeIdentifier = block.addElement('text', parent, `createText(${valueIdentifier})`);
+        const nodeIdentifier = block.addElement('text', parent, `@createText(${valueIdentifier})`);
 
         block.updateStatements.push(code`
             if (${valueIdentifier} !== (${valueIdentifier} = ${valueLookup})) {
-                setData(${nodeIdentifier}, ${valueIdentifier});
+                @setData(${nodeIdentifier}, ${valueIdentifier});
             }
         `);
     }
@@ -49,7 +49,7 @@ function generateAttribute(
 ): void {
     if (typeof attribute.value === 'string') {
         block.createStatements.push(
-            `setAttribute(${parent}, "${attribute.name}", ${JSON.stringify(attribute.value)});`
+            `@setAttribute(${parent}, "${attribute.name}", ${JSON.stringify(attribute.value)});`
         );
     } else {
         const valueLookup = `context.${generateExpression(attribute.value)}`;
@@ -57,11 +57,11 @@ function generateAttribute(
         const valueIdentifier = block.registerIdentifier(`${attribute.name}_value`, valueLookup);
 
         block.createStatements.push(
-            `setAttribute(${parent}, "${attribute.name}", ${valueIdentifier});`
+            `@setAttribute(${parent}, "${attribute.name}", ${valueIdentifier});`
         );
         block.updateStatements.push(code`
             if (${valueIdentifier} !== (${valueIdentifier} = ${valueLookup})) {
-                setAttribute(${parent}, "${attribute.name}", ${valueIdentifier});
+                @setAttribute(${parent}, "${attribute.name}", ${valueIdentifier});
             }
         `);
     }
@@ -77,8 +77,8 @@ function generateElement(
         element.name,
         parent,
         !element.namespace
-            ? `createElement("${element.name}")`
-            : `createElement("${element.name}", "${element.namespace}")`
+            ? `@createElement("${element.name}")`
+            : `@createElement("${element.name}", "${element.namespace}")`
     );
 
     for (const attribute of element.attributes) {
@@ -107,7 +107,7 @@ function generateIfBlock(
 
     const ifBlockIdentifier = block.registerIdentifier(
         'if_block',
-        `${conditionExpression} && ${ifBlock.name}(ctx)`
+        `${conditionExpression} && ${ifBlock.name}(context)`
     );
 
     block.createStatements.push(code`
@@ -125,7 +125,7 @@ function generateIfBlock(
             if (${ifBlockIdentifier}) {
                 ${ifBlockIdentifier}.update();
             } else {
-                ${ifBlockIdentifier} = ${ifBlock.name}(ctx);
+                ${ifBlockIdentifier} = ${ifBlock.name}(context);
                 ${ifBlockIdentifier}.create();
                 ${ifBlockIdentifier}.insert(${parent});
             }
@@ -163,7 +163,7 @@ function generateChildNode(
 
 export function generateTemplate(root: ASTRoot): string {
     const renderer = new Renderer();
-    const block = renderer.createBlock('template');
+    const block = renderer.createBlock('template', { isRoot: true });
 
     for (const child of root.children) {
         generateChildNode(renderer, block, 'target', child);

@@ -1,4 +1,7 @@
-function template(context) {
+import { renderer } from 'lwc';
+const { createText } = renderer;
+
+export default function template(context) {
     let text;
     return {
         create() {

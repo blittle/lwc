@@ -1,4 +1,7 @@
-function template(context) {
+import { renderer } from 'lwc';
+const { createElement, setAttribute } = renderer;
+
+export default function template(context) {
     let div;
     return {
         create() {

@@ -2,14 +2,17 @@ import { code } from '../utils/code';
 
 export class Block {
     name: string;
+    isRoot: boolean;
+
     identifiers = new Map<string, string | undefined>();
 
     createStatements: string[] = [];
     insertStatements: string[] = [];
     updateStatements: string[] = [];
 
-    constructor(name: string) {
+    constructor(name: string, options: { isRoot: boolean }) {
         this.name = name;
+        this.isRoot = options.isRoot;
     }
 
     registerIdentifier(name: string, init?: string): string {
@@ -40,14 +43,16 @@ export class Block {
             init ? `let ${identifier} = ${init};` : `let ${identifier};`
         );
 
+        const exportToken = this.isRoot ? 'export default ' : '';
+
         return code`
-            function ${this.name}(context) {
+            ${exportToken}function ${this.name}(context) {
                 ${identifierDeclarations}
                 return {
                     create() {
                         ${this.createStatements}
                     },
-                    insert(target) {
+                    insert(target, anchor) {
                         ${this.insertStatements}
                     },
                     update() {
